@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سجل الآن - دروس الإنجليزية مع <%= teacher.name %></title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="ticker-banner">
+  <div class="ticker-wrapper">
+    <div class="ticker-content">
+      <% tickerItems.forEach(function(item){ %><span><%= item %></span><% }); %>
+    </div>
+    <div class="ticker-content" aria-hidden="true">
+      <% tickerItems.forEach(function(item){ %><span><%= item %></span><% }); %>
+    </div>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="brand">
+    <h1>📚 <span class="highlight"><%= teacher.name %></span></h1>
+    <div class="subhead">⭐ أستاذ اللغة الإنجليزية - خبرة أكثر من 30 سنة ⭐</div>
+    <div class="badge">🎓 أستاذ مميز</div>
+
+    <div class="contact-buttons">
+      <a href="tel:<%= teacher.phone %>" class="phone-btn"><i class="fas fa-phone"></i> <%= teacher.phone %></a>
+      <a href="tel:<%= teacher.phone2 %>" class="phone-btn"><i class="fas fa-phone"></i> <%= teacher.phone2 %></a>
+    </div>
+
+    <div class="whatsapp-links">
+      <a href="https://wa.me/213<%= teacher.phone.slice(1) %>" target="_blank" class="wa-btn"><i class="fab fa-whatsapp"></i> واتساب 1</a>
+      <a href="https://wa.me/213<%= teacher.phone2.slice(1) %>" target="_blank" class="wa-btn"><i class="fab fa-whatsapp"></i> واتساب 2</a>
+    </div>
+
+    <hr class="divider">
+  </div>
+
+  <div class="form-card">
+    <% if (success) { %>
+      <div class="success-box">
+        <h2>✅ تم التسجيل بنجاح!</h2>
+        <p>مرحباً <strong><%= studentName %></strong>،</p>
+        <p>سنتواصل معك قريباً على الرقم المسجل لتأكيد التفاصيل وتحديد التوقيت المناسب.</p>
+        <p style="margin-top: 20px;"><a href="/" class="btn btn-success">➕ تسجيل جديد</a></p>
+      </div>
+    <% } else { %>
+      <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+      <h3>✍️ سجّل الآن - وانطلق نحو التميز</h3>
+      <form action="/submit" method="POST" id="registrationForm">
+        <div class="form-group">
+          <label>الاسم الأول <span class="required">*</span></label>
+          <input type="text" name="firstName" placeholder="مثال: أحمد" required maxlength="50">
+          <small class="hint">حروف عربية أو إنجليزية فقط (بدون أرقام)</small>
+        </div>
+        <div class="form-group">
+          <label>اللقب <span class="required">*</span></label>
+          <input type="text" name="lastName" placeholder="مثال: بن علي" required maxlength="50">
+          <small class="hint">حروف عربية أو إنجليزية فقط (بدون أرقام)</small>
+        </div>
+        <div class="form-group">
+          <label>رقم الهاتف <span class="required">*</span></label>
+          <input type="tel" name="phone" placeholder="0551234567" required maxlength="10">
+          <small class="hint">يجب أن يبدأ بـ 05 أو 06 أو 07 (10 أرقام)</small>
+        </div>
+        <div class="form-group">
+          <label>المستوى الدراسي <span class="required">*</span></label>
+          <select name="level" required>
+            <option value="">-- اختر المستوى --</option>
+            <optgroup label="الابتدائي (Primary)">
+              <option value="primary_3">السنة الثالثة ابتدائي</option>
+              <option value="primary_4">السنة الرابعة ابتدائي</option>
+              <option value="primary_5">السنة الخامسة ابتدائي</option>
+            </optgroup>
+            <optgroup label="المتوسط (Middle School)">
+              <option value="middle_1">السنة الأولى متوسط</option>
+              <option value="middle_2">السنة الثانية متوسط</option>
+              <option value="middle_3">السنة الثالثة متوسط</option>
+              <option value="middle_4">السنة الرابعة متوسط</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>طريقة الدراسة <span class="required">*</span></label>
+          <select name="studyMode" required>
+            <option value="">-- اختر --</option>
+            <option value="in_person">📖 حضوري</option>
+            <option value="online">💻 عن بُعد (Zoom / Teams)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ملاحظات إضافية</label>
+          <textarea name="notes" placeholder="أي تفاصيل إضافية..." maxlength="500"></textarea>
+        </div>
+        <div class="btn-group">
+          <button type="submit" class="btn btn-submit">📨 أرسل الطلب</button>
+          <button type="reset" class="btn btn-reset">↩️ مسح</button>
+        </div>
+      </form>
+    <% } %>
+  </div>
+
+  <div class="footer-note">
+    <p>⚡ عرض خاص للتسجيل المبكر - خصم 20% على الحصة الأولى</p>
+    <p>📞 للاستفسار: <a href="tel:<%= teacher.phone %>"><%= teacher.phone %></a> | <a href="tel:<%= teacher.phone2 %>"><%= teacher.phone2 %></a> | <a href="mailto:<%= teacher.email %>">✉️ <%= teacher.email %></a></p>
+    <p class="copyright">جميع الحقوق محفوظة © <%= new Date().getFullYear() %> - <%= teacher.name %></p>
+  </div>
+</div>
+
+<script src="/js/script.js"></script>
+</body>
+</html>

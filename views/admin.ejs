@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة التحكم</title>
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📋 لوحة التحكم</h1>
+    <p>إجمالي المسجلين: <strong><%= total %></strong></p>
+  </div>
+
+  <div class="actions">
+    <a href="/" class="btn btn-primary">↩ النموذج</a>
+    <a href="/export-csv" class="btn btn-success">📥 تصدير CSV</a>
+    <a href="/clear" class="btn btn-danger" onclick="return confirm('⚠️ حذف جميع البيانات؟')">🗑️ مسح الكل</a>
+  </div>
+
+  <!-- 📺 تحرير الشريط المتحرك -->
+  <div class="ticker-edit">
+    <h2>📺 الشريط المتحرك (الإعلانات العاجلة)</h2>
+    <form action="/update-ticker" method="POST">
+      <textarea name="tickerText" rows="3" placeholder="اكتب العبارات هنا..."><%= tickerText %></textarea>
+      <small>افصل بين العبارات بالرمز | &nbsp; مثال: ⚡ حصة استثنائية غداً 5 مساءً|🚨 أماكن محدودة</small>
+      <br><button type="submit" class="btn btn-success" style="margin-top:10px">💾 حفظ الشريط</button>
+      <small style="display:block;margin-top:6px">اتركه فارغاً لعرض العبارات الافتراضية</small>
+    </form>
+  </div>
+
+  <% if (registrations.length === 0) { %>
+    <div class="empty-state"><h2>لا توجد تسجيلات حالياً</h2></div>
+  <% } else { %>
+    <% var levelMap = {'primary_3':'3 ابتدائي','primary_4':'4 ابتدائي','primary_5':'5 ابتدائي','middle_1':'1 متوسط','middle_2':'2 متوسط','middle_3':'3 متوسط','middle_4':'4 متوسط'}; %>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>#</th><th>الاسم</th><th>الهاتف</th><th>المستوى</th><th>الطريقة</th><th>التوقيت</th><th>ملاحظات</th><th>التاريخ</th><th></th></tr></thead>
+        <tbody>
+        <% registrations.forEach(function(item, i) { %>
+          <tr>
+            <td><%= i+1 %></td>
+            <td><strong><%= item.firstName %> <%= item.lastName %></strong></td>
+            <td><a href="tel:<%= item.phone %>"><%= item.phone %></a></td>
+            <td><%= levelMap[item.level] || item.level %></td>
+            <td><%= item.studyMode === 'in_person' ? 'حضوري' : 'عن بُعد' %></td>
+            <td>
+              <form action="/update-time/<%= item._id %>" method="POST" class="inline-form">
+                <input type="text" name="scheduledAt" value="<%= item.scheduledAt || '' %>" placeholder="حدد التوقيت">
+                <button class="btn-small btn-save">💾</button>
+              </form>
+            </td>
+            <td><%= item.notes || '-' %></td>
+            <td><%= new Date(item.registeredAt).toLocaleDateString('ar-DZ') %></td>
+            <td>
+              <form action="/delete/<%= item._id %>" method="POST" onsubmit="return confirm('حذف؟')">
+                <button class="btn-small btn-delete">🗑️</button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+</body>
+</html>
