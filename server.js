@@ -41,6 +41,10 @@ app.use((err, req, res, next) => {
 
 app.use((req, res) => res.status(404).send('الصفحة غير موجودة'));
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 الخادم يعمل على: http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 الخادم يعمل على: http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
