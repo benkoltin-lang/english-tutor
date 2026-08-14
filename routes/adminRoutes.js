@@ -1,47 +1,29 @@
 const express = require('express');
 const router = express.Router();
-const Registration = require('../models/Registration');
-const Setting = require('../models/Setting');
-const adminAuth = require('../middleware/auth');
+const getDb = require('../config/firebase');
+const USER = process.env.ADMIN_USERNAME || 'admin';
+const PASS = process.env.ADMIN_PASSWORD || 'admin123';
 
-router.get('/admin', adminAuth, async (req, res) => {
-  const data = await Registration.find().sort({ registeredAt: -1 });
-  const s = await Setting.findOne({ key: 'ticker' });
-  res.render('admin', { registrations: data, total: data.length, tickerText: s ? s.value : '' });
+function auth(req, res, next) {
+  const h = req.headers.authorization || '';
+  if (h.startsWith('Basic ')) {
+    const [u, p] = Buffer.from(h.slice(6), 'base64').toString().split(':');
+    if (u === USER && p === PASS) return next();
+  }
+  res.set('WWW-Authenticate', 'Basic realm="admin"');
+  return res.status(401).send('مطلوب كلمة المرور');
+}
+
+router.get('/admin', auth, async (req, res) => {
+  let rows = [], err = '';
+  try {
+    const db = getDb();
+    if (db) {
+      const snap = await db.collection('registrations').orderBy('createdAt', 'desc').limit(200).get();
+      snap.forEach(d => rows.push(d.data()));
+    } else err = 'قاعدة البيانات غير موصولة';
+  } catch (e) { err = e.message; }
+  const trs = rows.map(r => '<tr><td>' + (r.firstName||'') + ' ' + (r.lastName||'') + '</td><td dir="ltr">' + (r.phone||'') + '</td><td>' + (r.level||'') + '</td><td>' + (r.studyMode||'') + '</td><td>' + (r.notes||'') + '</td></tr>').join('');
+  res.send('<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>لوحة التحكم</title><style>body{font-family:sans-serif;background:#0f2027;color:#fff;padding:20px}h1{color:#f6c344}table{width:100%;border-collapse:collapse;background:#16324a;border-radius:10px;overflow:hidden}td,th{padding:10px;border-bottom:1px solid #234;text-align:right;font-size:14px}th{background:#f6c344;color:#000}a{color:#4fc3f7}</style></head><body><h1>🔐 لوحة التحكم — تسجيلات الطلاب</h1>' + (err ? '<p style="color:#f66">❌ ' + err + '</p>' : '') + '<p>عدد التسجيلات: ' + rows.length + '</p>' + (rows.length ? '<table><tr><th>الاسم</th><th>الهاتف</th><th>المستوى</th><th>الدراسة</th><th>ملاحظات</th></tr>' + trs + '</table>' : '<p>لا توجد تسجيلات بعد.</p>') + '<p><a href="/">↩ العودة للموقع</a></p></body></html>');
 });
-
-// 💾 حفظ الشريط المتحرك
-router.post('/update-ticker', adminAuth, async (req, res) => {
-  const text = (req.body.tickerText || '').trim();
-  await Setting.findOneAndUpdate({ key: 'ticker' }, { value: text }, { upsert: true });
-  res.redirect('/admin');
-});
-
-router.get('/export-csv', adminAuth, async (req, res) => {
-  const data = await Registration.find().sort({ registeredAt: -1 });
-  const levelMap = {'primary_3':'3 ابتدائي','primary_4':'4 ابتدائي','primary_5':'5 ابتدائي','middle_1':'1 متوسط','middle_2':'2 متوسط','middle_3':'3 متوسط','middle_4':'4 متوسط'};
-  let csv = 'الاسم,الهاتف,المستوى,طريقة الدراسة,التوقيت,ملاحظات,تاريخ التسجيل\n';
-  data.forEach(item => {
-    csv += `${item.firstName} ${item.lastName},${item.phone},${levelMap[item.level]||item.level},${item.studyMode==='in_person'?'حضوري':'عن بُعد'},"${item.scheduledAt||''}","${item.notes||''}",${item.registeredAt.toISOString()}\n`;
-  });
-  res.header('Content-Type', 'text/csv; charset=utf-8');
-  res.attachment('registrations.csv');
-  res.send('\ufeff' + csv);
-});
-
-router.post('/update-time/:id', adminAuth, async (req, res) => {
-  await Registration.findByIdAndUpdate(req.params.id, { scheduledAt: req.body.scheduledAt });
-  res.redirect('/admin');
-});
-
-router.post('/delete/:id', adminAuth, async (req, res) => {
-  await Registration.findByIdAndDelete(req.params.id);
-  res.redirect('/admin');
-});
-
-router.get('/clear', adminAuth, async (req, res) => {
-  await Registration.deleteMany({});
-  res.redirect('/admin');
-});
-
 module.exports = router;
