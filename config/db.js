@@ -2,11 +2,17 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      console.error('❌ MONGODB_URI غير موجود!');
+      return;
+    }
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 8000
+    });
     console.log('✅ MongoDB متصل بنجاح');
-  } catch (error) {
-    console.error('❌ فشل الاتصال بـ MongoDB:', error.message);
-    process.exit(1);
+  } catch (err) {
+    console.error('❌ خطأ MongoDB:', err.message);
   }
 };
 
