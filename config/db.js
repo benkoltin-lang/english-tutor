@@ -1,19 +1,31 @@
 const mongoose = require('mongoose');
 
-const connectDB = async () => {
-  try {
-    const uri = process.env.MONGODB_URI;
-    if (!uri) {
-      console.error('❌ MONGODB_URI غير موجود!');
-      return;
-    }
-    const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 8000
-    });
-    console.log('✅ MongoDB متصل بنجاح');
-  } catch (err) {
-    console.error('❌ خطأ MongoDB:', err.message);
+let cached = global._mongoose;
+if (!cached) {
+  cached = global._mongoose = { conn: null, promise: null };
+}
+
+async function connectDB() {
+  if (cached.conn) return cached.conn;
+  if (!process.env.MONGODB_URI) {
+    console.log('⚠️ MONGODB_URI غير موجود');
+    return null;
   }
-};
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 5000,
+      maxPoolSize: 10
+    });
+  }
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    console.error('❌ MongoDB:', e.message);
+    cached.promise = null;
+    return null;
+  }
+  return cached.conn;
+}
 
 module.exports = connectDB;
