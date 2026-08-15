@@ -4,6 +4,7 @@ const getDb = require('../config/firebase');
 
 const USER = process.env.ADMIN_USERNAME || 'admin';
 const PASS = process.env.ADMIN_PASSWORD || 'admin123';
+const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 function auth(req, res, next) {
   const h = req.headers.authorization || '';
@@ -17,20 +18,22 @@ function auth(req, res, next) {
 
 router.get('/admin', auth, async (req, res) => {
   const db = getDb();
-  let regs = [], err = '';
+  let regs = [], err = '', tickerVal = '';
   try {
     if (db) {
       const snap = await db.collection('registrations').orderBy('createdAt', 'desc').limit(100).get();
       snap.forEach(d => regs.push(Object.assign({ id: d.id }, d.data())));
+      const td = await db.collection('settings').doc('ticker').get();
+      if (td.exists) tickerVal = td.data().value || '';
     } else err = 'قاعدة البيانات غير موصولة';
   } catch (e) { err = e.message; }
-  
+
   const rows = regs.map(r => `<tr>
-    <td><b>${r.firstName} ${r.lastName}</b></td>
-    <td dir="ltr">${r.phone}</td>
-    <td>${r.level}</td>
-    <td>${r.studyMode}</td>
-    <td>${r.notes || '-'}</td>
+    <td><b>${esc(r.firstName)} ${esc(r.lastName)}</b></td>
+    <td dir="ltr">${esc(r.phone)}</td>
+    <td>${esc(r.level)}</td>
+    <td>${esc(r.studyMode)}</td>
+    <td>${esc(r.notes) || '-'}</td>
     <td><small>${new Date(r.createdAt).toLocaleString('ar-DZ')}</small></td>
     <td>
       <form method="post" action="/admin/delete" style="display:inline">
@@ -39,7 +42,7 @@ router.get('/admin', auth, async (req, res) => {
       </form>
     </td>
   </tr>`).join('');
-  
+
   res.send(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>لوحة التحكم</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:sans-serif}
@@ -49,6 +52,9 @@ table{width:100%;border-collapse:collapse;background:#16324a;border-radius:10px;
 td,th{padding:10px;border-bottom:1px solid #234;text-align:right;font-size:14px}
 th{background:#f6c344;color:#000}
 .b-del{background:#7f1d1d;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer}
+.box{background:#16324a;border-radius:10px;padding:15px;margin-top:20px}
+textarea{width:100%;border-radius:8px;border:none;padding:10px;font-size:14px}
+.btn{background:#27ae60;color:#fff;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;margin-top:8px}
 </style></head><body>
 <h1>🔐 لوحة التحكم — تسجيلات الطلاب</h1>
 ${err ? '<p style="color:#e74c3c;text-align:center">❌ ' + err + '</p>' : ''}
@@ -57,18 +63,32 @@ ${err ? '<p style="color:#e74c3c;text-align:center">❌ ' + err + '</p>' : ''}
 <tr><th>الاسم</th><th>الهاتف</th><th>المستوى</th><th>الدراسة</th><th>ملاحظات</th><th>التاريخ</th><th>إجراء</th></tr>
 ${rows || '<tr><td colspan="7" style="text-align:center;padding:20px">لا توجد تسجيلات بعد</td></tr>'}
 </table>
+<div class="box">
+<h2 style="color:#f6c344;margin-bottom:10px">📢 التحكم في الشريط المتحرك</h2>
+<form method="post" action="/admin/ticker">
+<textarea name="value" rows="3" placeholder="اكتب عبارات الشريط وافصل بينها بالرمز |">${esc(tickerVal)}</textarea>
+<p style="font-size:12px;margin:8px 0">💡 افصل بين العبارات بالرمز | — إذا تركته فارغاً يعود الشريط الافتراضي</p>
+<button class="btn" type="submit">💾 حفظ الشريط</button>
+</form>
+</div>
 <p style="text-align:center;margin-top:15px"><a href="/" style="color:#4fc3f7">↩ العودة للموقع</a></p>
 </body></html>`);
+});
+
+router.post('/admin/ticker', auth, async (req, res) => {
+  const db = getDb();
+  if (db) {
+    try { await db.collection('settings').doc('ticker').set({ value: String(req.body.value || '') }); }
+    catch (e) { console.error('ticker save:', e.message); }
+  }
+  res.redirect('/admin');
 });
 
 router.post('/admin/delete', auth, async (req, res) => {
   const db = getDb();
   if (db && req.body.id) {
-    try {
-      await db.collection('registrations').doc(req.body.id).delete();
-    } catch (e) {
-      console.error('خطأ الحذف:', e.message);
-    }
+    try { await db.collection('registrations').doc(req.body.id).delete(); }
+    catch (e) { console.error('delete:', e.message); }
   }
   res.redirect('/admin');
 });

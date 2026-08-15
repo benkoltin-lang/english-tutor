@@ -19,6 +19,17 @@ async function getTickerItems() {
 function isValidName(n) { return /^[\u0600-\u06FFa-zA-Z\s]{2,50}$/.test(n.trim()); }
 function isValidAlgerianPhone(p) { return /^(05|06|07)\d{8}$/.test(p); }
 
+function notifyTelegram(text) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chat = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chat) return;
+  fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chat, text: text })
+  }).catch(function (e) { console.error('tg:', e.message); });
+}
+
 router.get('/', async (req, res) => {
   res.render('index', { teacher: req.app.locals.teacher, success: false, studentName: '', error: '', tickerItems: await getTickerItems() });
 });
@@ -41,6 +52,7 @@ router.post('/submit', async (req, res) => {
           notes: notes ? notes.trim().slice(0, 500) : '',
           createdAt: Date.now()
         });
+        notifyTelegram('📝 تسجيل جديد!\n👤 ' + firstName.trim() + ' ' + lastName.trim() + '\n📞 ' + phone.trim() + '\n🎓 ' + level + '\n📚 ' + studyMode);
       }
     } catch (e) { console.error('❌ حفظ:', e.message); }
   }
